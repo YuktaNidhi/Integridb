@@ -96,9 +96,9 @@ let () =
   if recomputed_hash = root_hash then (
     match result_opt with
     | Some results ->
-        Printf.printf "✅ Verified! Employees with salary in range [%d, %d]:\n" lo hi;
+        Printf.printf " Verified! Employees with salary in range [%d, %d]:\n" lo hi;
         List.iter (fun (_, name, _) -> Printf.printf "- %s\n" name) results
     | None ->
-        Printf.printf "✅ Verified! ❌ No employees found in range [%d, %d]\n" lo hi
+        Printf.printf "Verified!  No employees found in range [%d, %d]\n" lo hi
   ) else
-    Printf.printf "❌ Verification failed! Tampered data or incorrect proof.\n"
+    Printf.printf " Verification failed! Tampered data or incorrect proof.\n"
