@@ -21,7 +21,7 @@ It is implemented entirely in **OCaml** using the [`digestif`](https://github.co
 
 2. **Query**: A range query (`lo, hi`) returns the data matching that range, along with **cryptographic proof** (partial hashes used to compute the root).
 
-3. **Verification**: The query recomputes the root hash from the result and the proof path. If the recomputed root matches the actual root hash — ✅ verified.
+3. **Verification**: The query recomputes the root hash from the result and the proof path. If the recomputed root matches the actual root hash — verified.
 
 ---
 
