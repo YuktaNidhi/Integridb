@@ -1,4 +1,4 @@
-(* === Types === *)
+(* === Types === *) 
 type 'a hash = string
 type 'a range = 'a * 'a
 
@@ -39,22 +39,29 @@ let rec build_ait lst =
       let h = hash_pair h1 h2 in
       Node ((min_key, max_key), h, left, right)
 
-let rec search_range tree (lo, hi) =
+(* === Modified Search With Proof === *)
+let rec search_range_with_proof tree (lo, hi) =
   match tree with
   | Leaf (key, name, hash) ->
-      if key >= lo && key <= hi then Some [(key, name, hash)]
-      else None
-  | Node ((min_k, max_k), _, left, right) ->
-      if hi < min_k then search_range left (lo, hi)
-      else if lo > max_k then search_range right (lo, hi)
+      if key >= lo && key <= hi then (Some [(key, name, hash)], hash)
+      else (None, hash)
+  | Node ((min_k, max_k), hash, left, right) ->
+      if hi < min_k then
+        let (res, h_sub) = search_range_with_proof left (lo, hi) in
+        (res, hash_pair h_sub (match right with Leaf (_, _, h) | Node (_, h, _, _) -> h))
+      else if lo > max_k then
+        let (res, h_sub) = search_range_with_proof right (lo, hi) in
+        (res, hash_pair (match left with Leaf (_, _, h) | Node (_, h, _, _) -> h) h_sub)
       else
-        let lres = search_range left (lo, hi) in
-        let rres = search_range right (lo, hi) in
-        match (lres, rres) with
-        | (Some l, Some r) -> Some (l @ r)
-        | (Some l, None) -> Some l
-        | (None, Some r) -> Some r
-        | _ -> None
+        let (lres, lh) = search_range_with_proof left (lo, hi) in
+        let (rres, rh) = search_range_with_proof right (lo, hi) in
+        let combined_res = match (lres, rres) with
+          | (Some l, Some r) -> Some (l @ r)
+          | (Some l, None) -> Some l
+          | (None, Some r) -> Some r
+          | _ -> None
+        in
+        (combined_res, hash_pair lh rh)
 
 (* === Main === *)
 let employee_data = [
@@ -69,6 +76,12 @@ let employee_data = [
 let () =
   let tree = build_ait employee_data in
 
+  (* Extract root hash for comparison *)
+  let root_hash = match tree with
+    | Leaf (_, _, h) -> h
+    | Node (_, h, _, _) -> h
+  in
+
   (* Prompt the user for input *)
   Printf.printf "Enter lower bound of salary range: ";
   let lo = read_int () in
@@ -76,11 +89,16 @@ let () =
   Printf.printf "Enter upper bound of salary range: ";
   let hi = read_int () in
 
-  (* Perform search *)
-  match search_range tree (lo, hi) with
-  | Some results ->
-      Printf.printf " Employees with salary in range [%d, %d]:\n" lo hi;
-      List.iter (fun (_, name, _) -> Printf.printf "- %s\n" name) results
-  | None ->
-      Printf.printf " No employees found in range [%d, %d]\n" lo hi
+  (* Perform search with proof *)
+  let (result_opt, recomputed_hash) = search_range_with_proof tree (lo, hi) in
 
+  (* Verify hash match *)
+  if recomputed_hash = root_hash then (
+    match result_opt with
+    | Some results ->
+        Printf.printf "✅ Verified! Employees with salary in range [%d, %d]:\n" lo hi;
+        List.iter (fun (_, name, _) -> Printf.printf "- %s\n" name) results
+    | None ->
+        Printf.printf "✅ Verified! ❌ No employees found in range [%d, %d]\n" lo hi
+  ) else
+    Printf.printf "❌ Verification failed! Tampered data or incorrect proof.\n"
