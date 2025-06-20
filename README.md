@@ -1,26 +1,40 @@
-# IntegriDB – Authenticated Interval Tree (AIT) in OCaml
+#  IntegriDB — Authenticated Interval Tree in OCaml
 
-IntegriDB is a toy authenticated database prototype built using **authenticated interval trees (AITs)** in OCaml. It allows clients to perform verifiable range queries over ordered key-value pairs, such as employee salaries, while maintaining cryptographic integrity of the results.
+This repository provides a toy implementation of **IntegriDB**, a simplified cryptographic authenticated data structure using an **Interval Tree** for range queries with cryptographic integrity guarantees.
 
----
-
-## Features
-
-- Builds an **authenticated binary tree** over sorted key-value data.
-- Supports **range queries** over any comparable key type.
-- Uses the [BLAKE2b](https://en.wikipedia.org/wiki/BLAKE_(hash_function)) cryptographic hash for node authentication.
-- Pure functional OCaml implementation.
-- Interactive CLI for user-supplied query bounds.
+It is implemented entirely in **OCaml** using the [`digestif`](https://github.com/mirage/digestif) library for secure hash functions (BLAKE2b).
 
 ---
 
-## Requirements
+##  Features
 
-- OCaml ≥ 4.14
-- [Opam](https://opam.ocaml.org/) package manager
-- [Digestif](https://github.com/mirage/digestif) library for cryptographic hashing
+-  Defines a generic authenticated interval tree (AIT)
+-  Supports range queries over ordered keys (e.g., salary)
+-  Verifies result integrity by recomputing and comparing root hash
+-  Written in functional OCaml with recursive tree logic
 
-### Install dependencies
+---
 
-```bash
-opam install digestif dune
+##  How It Works
+
+1. **Data Insertion**: Tree is built from a list of sorted key-value pairs. Each leaf hashes its data; each internal node hashes its children's hashes.
+
+2. **Query**: A range query (`lo, hi`) returns the data matching that range, along with **cryptographic proof** (partial hashes used to compute the root).
+
+3. **Verification**: The query recomputes the root hash from the result and the proof path. If the recomputed root matches the actual root hash — ✅ verified.
+
+---
+
+## Example
+
+Given this dataset:
+
+```ocaml
+let employee_data = [
+  (50000, "Alice");
+  (80000, "Bob");
+  (120000, "Charlie");
+  (150000, "Daisy");
+  (200000, "Ethan");
+  (250000, "Fiona");
+]
