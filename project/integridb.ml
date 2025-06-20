@@ -79,8 +79,8 @@ let () =
   (* Perform search *)
   match search_range tree (lo, hi) with
   | Some results ->
-      Printf.printf "✅ Employees with salary in range [%d, %d]:\n" lo hi;
+      Printf.printf " Employees with salary in range [%d, %d]:\n" lo hi;
       List.iter (fun (_, name, _) -> Printf.printf "- %s\n" name) results
   | None ->
-      Printf.printf "❌ No employees found in range [%d, %d]\n" lo hi
+      Printf.printf " No employees found in range [%d, %d]\n" lo hi
 
