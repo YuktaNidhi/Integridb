@@ -1,10 +1,9 @@
 (* === Types === *) 
 type 'a hash = string
-type 'a range = 'a * 'a
 
 type ('a, 'b) ait_node =
-  | Leaf of 'a * 'b * 'b hash
-  | Node of 'a range * 'b hash * ('a, 'b) ait_node * ('a, 'b) ait_node
+  | Leaf of 'a * 'b * 'a hash
+  | Node of 'a * 'a hash * ('a, 'b) ait_node * ('a, 'b) ait_node
 
 (* === Lib (Helpers + AIT logic) === *)
 open Digestif.BLAKE2B
@@ -22,44 +21,38 @@ let rec list_drop n lst =
     | [] -> []
     | _::xs -> list_drop (n - 1) xs
 
+(* Build AIT: max key of left subtree is used in parent, hash of (key ^ value) for leaves *)
 let rec build_ait lst =
   match lst with
   | [] -> failwith "Empty list"
-  | [ (key, name) ] ->
-      let h = hash_str name in
-      Leaf (key, name, h)
+  | [ (key, value) ] ->
+      let h = hash_str (string_of_int key ^ value) in
+      Leaf (key, value, h)
   | _ ->
       let len = List.length lst / 2 in
       let left = build_ait (list_take len lst) in
       let right = build_ait (list_drop len lst) in
-      let min_key = match left with Leaf (k, _, _) | Node ((k, _), _, _, _) -> k in
-      let max_key = match right with Leaf (k, _, _) | Node ((_, k), _, _, _) -> k in
+      let left_key = match left with
+        | Leaf (k, _, _) -> k
+        | Node (k, _, _, _) -> k in
       let h1 = match left with Leaf (_, _, h) | Node (_, h, _, _) -> h in
       let h2 = match right with Leaf (_, _, h) | Node (_, h, _, _) -> h in
       let h = hash_pair h1 h2 in
-      Node ((min_key, max_key), h, left, right)
+      Node (left_key, h, left, right)
 
 (* === Modified Search With Proof === *)
 let rec search_range_with_proof tree (lo, hi) =
   match tree with
-  | Leaf (key, name, hash) ->
-      if key >= lo && key <= hi then (Some [(key, name, hash)], hash)
+  | Leaf (key, value, hash) ->
+      if key >= lo && key <= hi then (Some [(key, value, hash)], hash)
       else (None, hash)
-  | Node ((min_k, max_k), _, left, right) ->
-      if hi < min_k then
-        let (res, h_sub) = search_range_with_proof left (lo, hi) in
-        (res, hash_pair h_sub (match right with Leaf (_, _, h) | Node (_, h, _, _) -> h))
-      else if lo > max_k then
-        let (res, h_sub) = search_range_with_proof right (lo, hi) in
-        (res, hash_pair (match left with Leaf (_, _, h) | Node (_, h, _, _) -> h) h_sub)
-      else
-        let (lres, lh) = search_range_with_proof left (lo, hi) in
-        let (rres, rh) = search_range_with_proof right (lo, hi) in
-        let combined_res = match (lres, rres) with
-          | (Some l, Some r) -> Some (l @ r)
-          | (Some l, None) -> Some l
-          | (None, Some r) -> Some r
-          | _ -> None
-        in
-        (combined_res, hash_pair lh rh)
-
+  | Node (_, _, left, right) ->
+      let lres, lh = search_range_with_proof left (lo, hi) in
+      let rres, rh = search_range_with_proof right (lo, hi) in
+      let combined_res = match (lres, rres) with
+        | (Some l, Some r) -> Some (l @ r)
+        | (Some l, None) -> Some l
+        | (None, Some r) -> Some r
+        | _ -> None
+      in
+      (combined_res, hash_pair lh rh)
