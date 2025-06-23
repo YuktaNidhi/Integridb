@@ -1,0 +1,5 @@
+(test
+ (name test_integridb)
+ (libraries integridb)
+ (flags (:standard -warn-error -21)))
+
